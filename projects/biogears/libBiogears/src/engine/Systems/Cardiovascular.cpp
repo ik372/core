@@ -747,6 +747,7 @@ void Cardiovascular::PreProcess()
   // and do the appropriate calculations based on the time location.
   HeartDriver();
   ProcessActions();
+  Fibrilation();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1482,6 +1483,19 @@ void Cardiovascular::CardiacArrest()
       m_CardiacCyclePeriod_s = .0;
     }
   }
+}
+
+//--------------------------------------------------------------------------------------------------
+/// \brief
+/// The pericardial effusion pressure application function calculates the pressure applied to the heart due to a pericardial effusion.
+///
+/// \details
+/// The pressure applied to the left and right heart is dictated by the pericardium pressure. The response is tuned to 40% of this value
+/// to achieve the correct physiologic response.
+//--------------------------------------------------------------------------------------------------
+void Cardiovascular::Fibrilation()
+{
+
 }
 
 //--------------------------------------------------------------------------------------------------

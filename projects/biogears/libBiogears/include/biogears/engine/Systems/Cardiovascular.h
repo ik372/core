@@ -93,6 +93,7 @@ private:
 
   // PreProcess:
   void HeartDriver();
+  void Fibrilation();
   /**/ void AdjustVascularTone();
   /**/ void BeginCardiacCycle();
   /**/ void CalculateHeartElastance();
