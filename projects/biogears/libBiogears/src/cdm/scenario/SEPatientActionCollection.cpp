@@ -599,6 +599,19 @@ bool SEPatientActionCollection::ProcessAction(const CDM::PatientActionData& acti
     return IsValid(*m_AsthmaAttack);
   }
 
+  const CDM::AtrialFibrillationData* atrialfibrillation = dynamic_cast<const CDM::AtrialFibrillationData*>(&action);
+  if (atrialfibrillation != nullptr) {
+    if (m_AtrialFibrillation == nullptr) {
+      m_AtrialFibrillation = new SEAtrialFibrillation();
+    }
+    m_AtrialFibrillation->Load(*atrialfibrillation);
+    if (!m_AtrialFibrillation->IsActive()) {
+      RemoveAtrialFibrillation();
+      return true;
+    }
+    return IsValid(*m_AtrialFibrillation);
+  }
+
   const CDM::BrainInjuryData* brainInjury = dynamic_cast<const CDM::BrainInjuryData*>(&action);
   if (brainInjury != nullptr) {
     if (m_BrainInjury == nullptr) {
@@ -1175,6 +1188,21 @@ SEAsthmaAttack* SEPatientActionCollection::GetAsthmaAttack() const
 void SEPatientActionCollection::RemoveAsthmaAttack()
 {
   SAFE_DELETE(m_AsthmaAttack);
+}
+//-------------------------------------------------------------------------------
+bool SEPatientActionCollection::HasAtrialFibrillation() const
+{
+  return m_AtrialFibrillation == nullptr ? false : true;
+}
+//-------------------------------------------------------------------------------
+SEAtrialFibrillation* SEPatientActionCollection::GetAtrialFibrillation() const
+{
+  return m_AtrialFibrillation;
+}
+//-------------------------------------------------------------------------------
+void SEPatientActionCollection::RemoveAtrialFibrillation()
+{
+  SAFE_DELETE(m_AtrialFibrillation);
 }
 //-------------------------------------------------------------------------------
 bool SEPatientActionCollection::HasBrainInjury() const

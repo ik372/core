@@ -747,7 +747,7 @@ void Cardiovascular::PreProcess()
   // and do the appropriate calculations based on the time location.
   HeartDriver();
   ProcessActions();
-  Fibrilation();
+  Fibrillation();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1487,15 +1487,18 @@ void Cardiovascular::CardiacArrest()
 
 //--------------------------------------------------------------------------------------------------
 /// \brief
-/// The pericardial effusion pressure application function calculates the pressure applied to the heart due to a pericardial effusion.
+/// randomly change heart rate in a manner consistent with afib.
 ///
 /// \details
 /// The pressure applied to the left and right heart is dictated by the pericardium pressure. The response is tuned to 40% of this value
 /// to achieve the correct physiologic response.
 //--------------------------------------------------------------------------------------------------
-void Cardiovascular::Fibrilation()
+void Cardiovascular::Fibrillation()
 {
-
+  if (m_data.GetActions().GetPatientActions().HasAtrialFibrillation()) {
+    if (GetHeartRhythm() == CDM::enumHeartRhythm::AtrialFibrillation) {
+    }
+  }
 }
 
 //--------------------------------------------------------------------------------------------------

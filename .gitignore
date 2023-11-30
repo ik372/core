@@ -13,3 +13,5 @@ CMakeUserPresets.json
 .vs/*
 .vscode/*
 worktrees/*
+cmake/.vscode
+projects/.vscode

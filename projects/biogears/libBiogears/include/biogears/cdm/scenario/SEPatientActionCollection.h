@@ -20,6 +20,7 @@ specific language governing permissions and limitations under the License.
 #include <biogears/cdm/patient/actions/SEAirwayObstruction.h>
 #include <biogears/cdm/patient/actions/SEApnea.h>
 #include <biogears/cdm/patient/actions/SEAsthmaAttack.h>
+#include <biogears/cdm/patient/actions/SEAtrialFibrillation.h>
 #include <biogears/cdm/patient/actions/SEBrainInjury.h>
 #include <biogears/cdm/patient/actions/SEBronchoconstriction.h>
 #include <biogears/cdm/patient/actions/SEBurnWound.h>
@@ -234,6 +235,10 @@ public:
   SEAsthmaAttack* GetAsthmaAttack() const;
   void RemoveAsthmaAttack();
 
+  bool HasAtrialFibrillation() const;
+  SEAtrialFibrillation* GetAtrialFibrillation() const;
+  void RemoveAtrialFibrillation();
+
   bool HasBrainInjury() const;
   SEBrainInjury* GetBrainInjury() const;
   void RemoveBrainInjury();
@@ -406,6 +411,7 @@ protected:
   SEAirwayObstruction* m_AirwayObstruction;
   SEApnea* m_Apnea;
   SEAsthmaAttack* m_AsthmaAttack;
+  SEAtrialFibrillation* m_AtrialFibrillation;
   SEBrainInjury* m_BrainInjury;
   SEBronchoconstriction* m_Bronchoconstriction;
   SEBurnWound* m_BurnWound;
