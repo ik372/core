@@ -11,6 +11,9 @@ specific language governing permissions and limitations under the License.
 **************************************************************************************/
 #include <biogears/engine/Systems/Cardiovascular.h>
 
+#include <random>
+#include <numeric>
+
 #include <biogears/cdm/circuit/fluid/SEFluidCircuit.h>
 #include <biogears/cdm/compartment/fluid/SELiquidCompartmentGraph.h>
 #include <biogears/cdm/compartment/substances/SELiquidSubstanceQuantity.h>
@@ -180,6 +183,7 @@ void Cardiovascular::Initialize()
 
   // CPR and Cardiac Arrest control
   m_EnterCardiacArrest = false;
+  m_EnterAtrialFibrillation = false;
   m_CompressionTime_s = 0.0;
   m_CompressionRatio = 0.0;
   m_CompressionPeriod_s = 0.0;
@@ -250,6 +254,7 @@ bool Cardiovascular::Load(const CDM::BioGearsCardiovascularSystemData& in)
   m_StartSystole = in.StartSystole();
   m_HeartFlowDetected = in.HeartFlowDetected();
   m_EnterCardiacArrest = in.EnterCardiacArrest();
+  m_EnterAtrialFibrillation = in.EnterAtrialFibrillation();
   m_CardiacCyclePeriod_s = in.CardiacCyclePeriod_s();
   m_CurrentCardiacCycleDuration_s = in.CurrentCardiacCycleDuration_s();
   m_LeftHeartElastanceModifier = in.LeftHeartElastanceModifier();
@@ -306,6 +311,7 @@ void Cardiovascular::Unload(CDM::BioGearsCardiovascularSystemData& data) const
   data.StartSystole(m_StartSystole);
   data.HeartFlowDetected(m_HeartFlowDetected);
   data.EnterCardiacArrest(m_EnterCardiacArrest);
+  data.EnterAtrialFibrillation(m_EnterAtrialFibrillation);
   data.CardiacCyclePeriod_s(m_CardiacCyclePeriod_s);
   data.CurrentCardiacCycleDuration_s(m_CurrentCardiacCycleDuration_s);
   data.LeftHeartElastance_mmHg_Per_mL(m_LeftHeartElastance_mmHg_Per_mL);
@@ -747,7 +753,6 @@ void Cardiovascular::PreProcess()
   // and do the appropriate calculations based on the time location.
   HeartDriver();
   ProcessActions();
-  Fibrillation();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1093,6 +1098,7 @@ void Cardiovascular::ProcessActions()
   PericardialEffusion();
   CPR();
   CardiacArrest();
+  AtrialFibrillation();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1493,12 +1499,27 @@ void Cardiovascular::CardiacArrest()
 /// The pressure applied to the left and right heart is dictated by the pericardium pressure. The response is tuned to 40% of this value
 /// to achieve the correct physiologic response.
 //--------------------------------------------------------------------------------------------------
-void Cardiovascular::Fibrillation()
+double Cardiovascular::AtrialFibrillation()
 {
+  double ComputedCycle_s = 0.0;
+
   if (m_data.GetActions().GetPatientActions().HasAtrialFibrillation()) {
-    if (GetHeartRhythm() == CDM::enumHeartRhythm::AtrialFibrillation) {
+    if (m_data.GetActions().GetPatientActions().GetAtrialFibrillation()->IsActive()) {
+      m_EnterAtrialFibrillation = true;
+    } else {
+      m_data.GetActions().GetPatientActions().RemoveAtrialFibrillation();
+      m_patient->SetEvent(CDM::enumPatientEvent::AtrialFibrillation, false, m_data.GetSimulationTime());
+      m_EnterAtrialFibrillation = false;
+      m_StartSystole = true;
+      SetHeartRhythm(CDM::enumHeartRhythm::NormalSinus);
+      GetHeartRate().SetValue(m_data.GetCardiovascular().GetHeartRate().GetValue(), FrequencyUnit::Per_min);
+      m_CurrentCardiacCycleDuration_s = 1. / m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_s);
+      m_CardiacCyclePeriod_s = .0;
     }
   }
+
+  return ComputedCycle_s;
+
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1711,6 +1732,11 @@ void Cardiovascular::BeginCardiacCycle()
         m_CardiacCyclePeriod_s = 1.0 / m_patient->GetHeartRateBaseline(FrequencyUnit::Per_s);
       }
     }
+  }
+
+  if (m_EnterAtrialFibrillation) {
+    m_patient->SetEvent(CDM::enumPatientEvent::AtrialFibrillation, true, m_data.GetSimulationTime());
+    m_CardiacCyclePeriod_s = AtrialFibrillation();
   }
 
   // Reset the systole flag and the cardiac cycle time

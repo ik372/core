@@ -43,6 +43,8 @@ specific language governing permissions and limitations under the License.
       <!--<< @brief Low urine flow. -->
       <xs:enumeration value="Asystole"/>
       <!--<< @brief Represents no cardiac electrical activity. -->
+      <xs:enumeration value="AtrialFibrillation"/>
+      <!--<< @brief Atrial Fibrillation, irregular heartbeat-->
       <xs:enumeration value="Bradycardia"/>
       <!--<< @brief The heart rate is slowed to below 60 beats per minute. -->
       <xs:enumeration value="Bradypnea"/>

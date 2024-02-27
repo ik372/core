@@ -55,6 +55,7 @@ specific language governing permissions and limitations under the License.
           <xs:element name="StartSystole" type="xs:boolean" minOccurs="1" maxOccurs="1"/>
           <xs:element name="HeartFlowDetected" type="xs:boolean" minOccurs="1" maxOccurs="1"/>
           <xs:element name="EnterCardiacArrest" type="xs:boolean" minOccurs="1" maxOccurs="1"/>
+          <xs:element name="EnterAtrialFibrillation" type="xs:boolean" minOccurs="1" maxOccurs="1"/>
           <xs:element name="CardiacCyclePeriod_s" type="xs:double" minOccurs="1" maxOccurs="1"/>
           <xs:element name="CurrentCardiacCycleDuration_s" type="xs:double" minOccurs="1" maxOccurs="1"/>
           <xs:element name="LeftHeartElastanceModifier" type="xs:double" minOccurs="1" maxOccurs="1"/>

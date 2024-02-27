@@ -93,7 +93,7 @@ private:
 
   // PreProcess:
   void HeartDriver();
-  void Fibrillation();
+  double AtrialFibrillation();
   /**/ void AdjustVascularTone();
   /**/ void BeginCardiacCycle();
   /**/ void CalculateHeartElastance();
@@ -129,6 +129,7 @@ private:
   bool m_StartSystole;
   bool m_HeartFlowDetected;
   bool m_EnterCardiacArrest; // Can't go into cardiac arrest during the middle of a cycle
+  bool m_EnterAtrialFibrillation;
   double m_CardiacCyclePeriod_s;
   double m_CurrentCardiacCycleDuration_s; // How long have we been in this heart beat
   double m_LeftHeartElastanceModifier; // from Heart Failure and such
