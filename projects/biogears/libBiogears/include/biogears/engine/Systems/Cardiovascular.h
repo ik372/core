@@ -93,7 +93,6 @@ private:
 
   // PreProcess:
   void HeartDriver();
-  double AtrialFibrillation();
   /**/ void AdjustVascularTone();
   /**/ void BeginCardiacCycle();
   /**/ void CalculateHeartElastance();
@@ -110,6 +109,7 @@ private:
   /**/ void Hemorrhage();
   /**/ void PericardialEffusion();
   /**/ void PericardialEffusionPressureApplication();
+  /**/ double AtrialFibrillation();
   /**/ void CardiacArrest();
   /**/ void TraumaticBrainInjury();
 

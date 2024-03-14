@@ -12,6 +12,7 @@
 
 #include <biogears/cdm/patient/actions/PatientActionsEnums.h>
 #include <biogears/cdm/patient/actions/SEActionExample.h>
+#include <biogears/cdm/patient/actions/SEAtrialFibrillation.h>
 #include <biogears/cdm/patient/actions/SEAcuteRespiratoryDistress.h>
 #include <biogears/cdm/patient/actions/SEAcuteStress.h>
 #include <biogears/cdm/patient/actions/SEAirwayObstruction.h>
@@ -181,6 +182,14 @@ namespace io {
         Scenario::Marshall(*apneaData, *a);
         return a;
       }
+
+      CDM::AtrialFibrillationData* afibData = dynamic_cast<CDM::AtrialFibrillationData*>(action);
+      if (afibData != nullptr) {
+        auto a = std::make_unique<SEAtrialFibrillation>();
+        Scenario::Marshall(*afibData, *a);
+        return a;
+      }
+
 
       CDM::BrainInjuryData* brainInjData = dynamic_cast<CDM::BrainInjuryData*>(action);
       if (brainInjData != nullptr) {
@@ -633,6 +642,23 @@ namespace io {
     Scenario::UnMarshall(static_cast<const SEPatientAction&>(in), static_cast<CDM::PatientActionData&>(out));
     CDM_PROPERTY_UNMARSHAL_HELPER(in, out, Severity)
   }
+  //----------------------------------------------------------------------------------
+  // class SEAtrialFibrillation
+  void PatientActions::Marshall(const CDM::AtrialFibrillationData& in, SEAtrialFibrillation& out)
+  {
+    out.Clear();
+
+    Scenario::Marshall(static_cast<const CDM::PatientActionData&>(in), static_cast<SEPatientAction&>(out));
+
+     out.m_State = in.State();
+  }
+  //----------------------------------------------------------------------------------
+  void PatientActions::UnMarshall(const SEAtrialFibrillation& in, CDM::AtrialFibrillationData& out)
+  {
+    Scenario::UnMarshall(static_cast<const SEPatientAction&>(in), static_cast<CDM::PatientActionData&>(out));
+    out.State(in.m_State);
+  }
+  
   //----------------------------------------------------------------------------------
   // class SEBrainInjury
   void PatientActions::Marshall(const CDM::BrainInjuryData& in, SEBrainInjury& out)

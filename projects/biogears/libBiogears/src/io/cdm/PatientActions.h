@@ -32,6 +32,7 @@ class SEActionExample;
 class SEAirwayObstruction;
 class SEApnea;
 class SEAsthmaAttack;
+class SEAtrialFibrillation;
 class SEBrainInjury;
 class SEBronchoconstriction;
 class SEBurnWound;
@@ -112,6 +113,9 @@ namespace io {
     //class SEAsthmaAttack;
     static void Marshall(const CDM::AsthmaAttackData& in, SEAsthmaAttack& out);
     static void UnMarshall(const SEAsthmaAttack& in, CDM::AsthmaAttackData& out);
+    //class SEAtrialFibrillation
+    static void Marshall(const CDM::AtrialFibrillationData& in, SEAtrialFibrillation& out);
+    static void UnMarshall(const SEAtrialFibrillation& in, CDM::AtrialFibrillationData& out);
     //class SEBrainInjury;
     static void Marshall(const CDM::BrainInjuryData& in, SEBrainInjury& out);
     static void UnMarshall(const SEBrainInjury& in, CDM::BrainInjuryData& out);

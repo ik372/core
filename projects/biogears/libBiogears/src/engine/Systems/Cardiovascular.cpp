@@ -1496,17 +1496,45 @@ void Cardiovascular::CardiacArrest()
 /// randomly change heart rate in a manner consistent with afib.
 ///
 /// \details
-/// The pressure applied to the left and right heart is dictated by the pericardium pressure. The response is tuned to 40% of this value
-/// to achieve the correct physiologic response.
+/// This function generates stochastic, irregular RR interval based on literature values of RMSSD and SD.
+/// Lowering attraction parameter and/or k value in the gamma distribution introduces more variability.
+/// Begins with an initial value of CardiacCyclePeriod based on the startingheart rate of the scenario but onwards, 
+/// each ComputedCycle_s is computed based on the previous value, and is subjected to stochastic perturbation. 
 //--------------------------------------------------------------------------------------------------
 double Cardiovascular::AtrialFibrillation()
 {
-  double ComputedCycle_s = 0.0;
+  // Local variable initialization for RR interval generation
+  const float k = 0.1; // Shape parameter for the gamma distribution
+  const float rmssd = 0.0404f; // sec, root mean square of the successive differences
+  const float standard_deviation = 0.156f; // sec, standard deviation of RR intervals
+  const float attraction = 0.1f; // Attraction towards the mean RR
+  float mean_rr = 60.0 / m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_min); // Initial mean RR based on baseline HR
+  static std::mt19937 gen(std::random_device {}()); // Static to maintain state across invocations
+
+  // RR interval generation function defined inline within the AtrialFibrillation method
+  auto generate_rr_interval = [k, rmssd, standard_deviation, attraction, mean_rr](float previous_rr, std::mt19937& gen) -> float {
+    std::gamma_distribution<> d(k, rmssd / k);
+    std::normal_distribution<> n(mean_rr, standard_deviation);
+    float perturbation = d(gen) * (gen() % 2 == 0 ? 1 : -1);
+    float baseline = n(gen);
+    return (1 - attraction) * (previous_rr + perturbation) + attraction * baseline;
+  };
+
+  double ComputedCycle_s = 0.0; // To store the computed RR interval
 
   if (m_data.GetActions().GetPatientActions().HasAtrialFibrillation()) {
-    if (m_data.GetActions().GetPatientActions().GetAtrialFibrillation()->IsActive()) {
-      m_EnterAtrialFibrillation = true;
+    //if (m_data.GetActions().GetPatientActions().GetAtrialFibrillation()->IsActive()) {
+      // Check if entering AF for the first time
+      if (!m_EnterAtrialFibrillation) {
+        m_EnterAtrialFibrillation = true;
+        ComputedCycle_s = mean_rr; // Initialize with mean RR
+      } else {
+        // Generate next RR interval based on the last computed value
+        ComputedCycle_s = generate_rr_interval(m_CardiacCyclePeriod_s, gen);
+      }
+      m_CardiacCyclePeriod_s = ComputedCycle_s; // Update for next iteration
     } else {
+      // Reset if AF is deactivated
       m_data.GetActions().GetPatientActions().RemoveAtrialFibrillation();
       m_patient->SetEvent(CDM::enumPatientEvent::AtrialFibrillation, false, m_data.GetSimulationTime());
       m_EnterAtrialFibrillation = false;
@@ -1516,13 +1544,13 @@ double Cardiovascular::AtrialFibrillation()
       m_CurrentCardiacCycleDuration_s = 1. / m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_s);
       m_CardiacCyclePeriod_s = .0;
     }
-  }
+  //}
 
   return ComputedCycle_s;
-
 }
 
 //--------------------------------------------------------------------------------------------------
+
 /// \brief
 /// The pericardial effusion pressure application function calculates the pressure applied to the heart due to a pericardial effusion.
 ///
@@ -1735,6 +1763,9 @@ void Cardiovascular::BeginCardiacCycle()
   }
 
   if (m_EnterAtrialFibrillation) {
+    std::stringstream afib;
+    afib << "this worked ";
+    Info(afib);
     m_patient->SetEvent(CDM::enumPatientEvent::AtrialFibrillation, true, m_data.GetSimulationTime());
     m_CardiacCyclePeriod_s = AtrialFibrillation();
   }
