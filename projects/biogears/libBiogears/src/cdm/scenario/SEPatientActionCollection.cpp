@@ -269,6 +269,7 @@ SEPatientActionCollection::SEPatientActionCollection(SESubstanceManager& substan
   m_AirwayObstruction = nullptr;
   m_Apnea = nullptr;
   m_AsthmaAttack = nullptr;
+  m_AtrialFibrillation = nullptr;
   m_BrainInjury = nullptr;
   m_Bronchoconstriction = nullptr;
   m_BurnWound = nullptr;
@@ -311,6 +312,7 @@ void SEPatientActionCollection::Clear()
   RemoveAirwayObstruction();
   RemoveApnea();
   RemoveAsthmaAttack();
+  RemoveAtrialFibrillation();
   RemoveBrainInjury();
   RemoveBronchoconstriction();
   RemoveBurnWound();
@@ -368,6 +370,9 @@ void SEPatientActionCollection::Unload(std::vector<CDM::ActionData*>& to)
   }
   if (HasAsthmaAttack()) {
     to.push_back(GetAsthmaAttack()->Unload());
+  }
+  if (HasAtrialFibrillation()) {
+    to.push_back(GetAtrialFibrillation()->Unload());
   }
   if (HasBrainInjury()) {
     to.push_back(GetBrainInjury()->Unload());

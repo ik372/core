@@ -1504,10 +1504,10 @@ void Cardiovascular::CardiacArrest()
 double Cardiovascular::AtrialFibrillation()
 {
   // Local variable initialization for RR interval generation
-  const float k = 0.1; // Shape parameter for the gamma distribution
+  const float k = 0.3; // Shape parameter for the gamma distribution
   const float rmssd = 0.0404f; // sec, root mean square of the successive differences
   const float standard_deviation = 0.156f; // sec, standard deviation of RR intervals
-  const float attraction = 0.1f; // Attraction towards the mean RR
+  const float attraction = 0.3f; // Attraction towards the mean RR
   float mean_rr = 60.0 / m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_min); // Initial mean RR based on baseline HR
   static std::mt19937 gen(std::random_device {}()); // Static to maintain state across invocations
 
@@ -1523,7 +1523,7 @@ double Cardiovascular::AtrialFibrillation()
   double ComputedCycle_s = 0.0; // To store the computed RR interval
 
   if (m_data.GetActions().GetPatientActions().HasAtrialFibrillation()) {
-    //if (m_data.GetActions().GetPatientActions().GetAtrialFibrillation()->IsActive()) {
+    if (m_data.GetActions().GetPatientActions().GetAtrialFibrillation()->IsActive()) {
       // Check if entering AF for the first time
       if (!m_EnterAtrialFibrillation) {
         m_EnterAtrialFibrillation = true;
@@ -1544,7 +1544,7 @@ double Cardiovascular::AtrialFibrillation()
       m_CurrentCardiacCycleDuration_s = 1. / m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_s);
       m_CardiacCyclePeriod_s = .0;
     }
-  //}
+  }
 
   return ComputedCycle_s;
 }
@@ -1763,9 +1763,6 @@ void Cardiovascular::BeginCardiacCycle()
   }
 
   if (m_EnterAtrialFibrillation) {
-    std::stringstream afib;
-    afib << "this worked ";
-    Info(afib);
     m_patient->SetEvent(CDM::enumPatientEvent::AtrialFibrillation, true, m_data.GetSimulationTime());
     m_CardiacCyclePeriod_s = AtrialFibrillation();
   }
