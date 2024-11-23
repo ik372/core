@@ -243,6 +243,8 @@ void Cardiovascular::Initialize()
   m_OverrideLHEMax_Conformant_mmHg = m_LeftHeartElastanceMax_mmHg_Per_mL;
   m_OverrideRHEMax_Conformant_mmHg = m_RightHeartElastanceMax_mmHg_Per_mL;
 
+  m_data.GetDataTrack().Probe("m_CardiacCyclePeriod_s ", m_CardiacCyclePeriod_s);
+
   m_overrideTime_s = 0.0;
 }
 
@@ -1097,7 +1099,7 @@ void Cardiovascular::ProcessActions()
   Hemorrhage();
   PericardialEffusion();
   CPR();
-  CardiacArrest();
+  //CardiacArrest();
   AtrialFibrillation();
 }
 
@@ -1472,67 +1474,72 @@ void Cardiovascular::CalculateAndSetCPRcompressionForce()
 /// action is active, the heart will not beat effectively and breathing will not occur.
 //--------------------------------------------------------------------------------------------------
 
-void Cardiovascular::CardiacArrest()
+void Cardiovascular::AtrialFibrillation()
 {
-  if (m_data.GetActions().GetPatientActions().HasCardiacArrest()) {
-    if (m_data.GetActions().GetPatientActions().GetCardiacArrest()->IsActive()) {
-      m_EnterCardiacArrest = true;
-    } else {
-      m_data.GetActions().GetPatientActions().RemoveCardiacArrest();
-      m_patient->SetEvent(CDM::enumPatientEvent::CardiacArrest, false, m_data.GetSimulationTime());
-      m_patient->SetEvent(CDM::enumPatientEvent::Asystole, false, m_data.GetSimulationTime());
-      m_EnterCardiacArrest = false;
-      m_StartSystole = true;
-      SetHeartRhythm(CDM::enumHeartRhythm::NormalSinus);
-      GetHeartRate().SetValue(m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_min), FrequencyUnit::Per_min);
-      m_CurrentCardiacCycleDuration_s = 1. / m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_s);
-      m_CardiacCyclePeriod_s = .0;
-    }
-  }
-}
+  if (!m_data.GetActions().GetPatientActions().HasAtrialFibrillation() || !m_StartSystole) {
 
-//--------------------------------------------------------------------------------------------------
-/// \brief
-/// randomly change heart rate in a manner consistent with afib.
-///
-/// \details
-/// This function generates stochastic, irregular RR interval based on literature values of RMSSD and SD.
-/// Lowering attraction parameter and/or k value in the gamma distribution introduces more variability.
-/// Begins with an initial value of CardiacCyclePeriod based on the startingheart rate of the scenario but onwards, 
-/// each ComputedCycle_s is computed based on the previous value, and is subjected to stochastic perturbation. 
-//--------------------------------------------------------------------------------------------------
-double Cardiovascular::AtrialFibrillation()
-{
-  // Local variable initialization for RR interval generation
-  const float k = 0.3; // Shape parameter for the gamma distribution
-  const float rmssd = 0.0404f; // sec, root mean square of the successive differences
-  const float standard_deviation = 0.156f; // sec, standard deviation of RR intervals
-  const float attraction = 0.3f; // Attraction towards the mean RR
-  float mean_rr = 60.0 / m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_min); // Initial mean RR based on baseline HR
+    return;
+  }
+
+  // Input values for RR intervals (in seconds)
+  const float mean_rr = 0.7f; // Mean RR interval (700 ms = 0.7 s)
+  const float standard_deviation = 0.155f; // SD of RR intervals (155 ms = 0.155 s)
+  const float rmssd = 0.22f; // RMSSD (220 ms = 0.22 s)
+  const float attraction = 0.1f; // Attraction towards the mean RR
+
+  // Log-transform parameters 
+  const float meanLog = std::log(mean_rr); // Mean of log-transformed RR intervals
+  const float stdLog = standard_deviation / mean_rr; // Standard deviation of log-transformed RR intervals
+
   static std::mt19937 gen(std::random_device {}()); // Static to maintain state across invocations
 
   // RR interval generation function defined inline within the AtrialFibrillation method
-  auto generate_rr_interval = [k, rmssd, standard_deviation, attraction, mean_rr](float previous_rr, std::mt19937& gen) -> float {
-    std::gamma_distribution<> d(k, rmssd / k);
+  auto generate_rr_interval = [meanLog, rmssd, stdLog, standard_deviation, attraction, mean_rr](float previous_rr, std::mt19937& gen) -> float {
+    // Step 1: Stochastic perturbation based on log-normal distribution
+    std::lognormal_distribution<> ln(meanLog, stdLog);
+    float perturbation = ln(gen); // The random component influenced by the AFib variability
+
+    // Step 2: Baseline RR interval based on a normal distribution
     std::normal_distribution<> n(mean_rr, standard_deviation);
-    float perturbation = d(gen) * (gen() % 2 == 0 ? 1 : -1);
-    float baseline = n(gen);
-    return (1 - attraction) * (previous_rr + perturbation) + attraction * baseline;
+    float baseline = n(gen); // The baseline value for RR interval
+
+    // Step 3: Add short-term variability based on RMSSD
+    std::normal_distribution<> rr_diff_perturbation(0.0f, rmssd);
+    float rr_diff_variability = rr_diff_perturbation(gen); // Adds short-term HRV to simulate AFib
+
+    // Combining previous RR interval, perturbation, and baseline with attraction towards the mean
+    return (1 - attraction) * (previous_rr + perturbation + rr_diff_variability) + attraction * baseline;
   };
 
-  double ComputedCycle_s = 0.0; // To store the computed RR interval
+  auto generate_random_within_range = [](std::mt19937& gen) -> double {
+    // Random RR generated between 0.3 (200 bpm) and 1.2 (50 bpm)
+    std::uniform_real_distribution<> dist(0.25, 1.5);
+    return dist(gen);
+  };
+
+  double ComputedCycle_s = 0.0; 
 
   if (m_data.GetActions().GetPatientActions().HasAtrialFibrillation()) {
+
     if (m_data.GetActions().GetPatientActions().GetAtrialFibrillation()->IsActive()) {
+
       // Check if entering AF for the first time
       if (!m_EnterAtrialFibrillation) {
         m_EnterAtrialFibrillation = true;
+        m_patient->SetEvent(CDM::enumPatientEvent::AtrialFibrillation, true, m_data.GetSimulationTime());
         ComputedCycle_s = mean_rr; // Initialize with mean RR
       } else {
         // Generate next RR interval based on the last computed value
         ComputedCycle_s = generate_rr_interval(m_CardiacCyclePeriod_s, gen);
+        // Ensure the computed cycle is within range (between 0.3 and 1.2 seconds)
+        if (ComputedCycle_s < 0.3 || ComputedCycle_s > 1.2) {
+          ComputedCycle_s = generate_random_within_range(gen);
+        }
       }
+
       m_CardiacCyclePeriod_s = ComputedCycle_s; // Update for next iteration
+      // Print generated RRI for graphing
+      std::cout << "Generated ComputedCycle_s: " << ComputedCycle_s << std::endl;
     } else {
       // Reset if AF is deactivated
       m_data.GetActions().GetPatientActions().RemoveAtrialFibrillation();
@@ -1542,11 +1549,12 @@ double Cardiovascular::AtrialFibrillation()
       SetHeartRhythm(CDM::enumHeartRhythm::NormalSinus);
       GetHeartRate().SetValue(m_data.GetCardiovascular().GetHeartRate().GetValue(), FrequencyUnit::Per_min);
       m_CurrentCardiacCycleDuration_s = 1. / m_patient->GetHeartRateBaseline().GetValue(FrequencyUnit::Per_s);
-      m_CardiacCyclePeriod_s = .0;
+      m_CardiacCyclePeriod_s = 0.0;
     }
   }
 
-  return ComputedCycle_s;
+  m_data.GetDataTrack().Probe("m_CardiacCyclePeriod_s ", m_CardiacCyclePeriod_s);
+
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1764,7 +1772,7 @@ void Cardiovascular::BeginCardiacCycle()
 
   if (m_EnterAtrialFibrillation) {
     m_patient->SetEvent(CDM::enumPatientEvent::AtrialFibrillation, true, m_data.GetSimulationTime());
-    m_CardiacCyclePeriod_s = AtrialFibrillation();
+    AtrialFibrillation();
   }
 
   // Reset the systole flag and the cardiac cycle time
